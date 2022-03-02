@@ -18,10 +18,11 @@ class Batch(DotDict):
             (and not to padding), shape (batch_size, seq_len)
         marks: Padded marks associated with each event, shape (batch_size, seq_len)
     """
-    def __init__(self, inter_times: torch.Tensor, mask: torch.Tensor, marks: Optional[torch.Tensor] = None, **kwargs):
+    def __init__(self, inter_times: torch.Tensor, mask: torch.Tensor, marks: Optional[torch.Tensor] = None, context: Optional[torch.Tensor] = None, **kwargs):
         self.inter_times = inter_times
         self.mask = mask
         self.marks = marks
+        self.context = context
 
         for key, value in kwargs.items():
             self[key] = value
@@ -75,7 +76,12 @@ class Batch(DotDict):
         else:
             marks = None
 
-        return Batch(inter_times, mask, marks)
+        if sequences[0].context is not None:
+            context = pad_sequence([seq.context for seq in sequences], max_len=max_seq_len)
+        else:
+            context = None
+
+        return Batch(inter_times, mask, marks, context)
 
     def get_sequence(self, idx: int) -> Sequence:
         length = int(self.mask[idx].sum(-1)) + 1
@@ -84,8 +90,14 @@ class Batch(DotDict):
             marks = self.marks[idx, :length - 1]
         else:
             marks = None
+
+        if self.context is not None:
+            context = self.context[idx, :length - 1]
+        else:
+            context = None
+
         # TODO: recover additional attributes (passed through kwargs) from the batch
-        return Sequence(inter_times=inter_times, marks=marks)
+        return Sequence(inter_times=inter_times, marks=marks, context=context)
 
     def to_list(self) -> List[Sequence]:
         """Convert a batch into a list of variable-length sequences."""

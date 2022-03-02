@@ -19,7 +19,7 @@ class Sequence(DotDict):
         marks: Mark corresponding to each event. Note that the length is 1 shorter than
             for inter_times, shape (seq_len - 1,)
     """
-    def __init__(self, inter_times: torch.Tensor, marks: Optional[torch.Tensor] = None, **kwargs):
+    def __init__(self, inter_times: torch.Tensor, marks: Optional[torch.Tensor] = None, context: Optional[torch.Tensor], **kwargs):
         if not isinstance(inter_times, torch.Tensor):
             inter_times = torch.tensor(inter_times)
         # The inter-event times should be at least 1e-10 to avoid numerical issues
@@ -31,6 +31,13 @@ class Sequence(DotDict):
             self.marks = marks.long()
         else:
             self.marks = None
+
+        if context is not None:
+            if not isinstance(context, torch.Tensor):
+                context = torch.Tensor(context)
+            self.context = context.long()
+        else:
+            self.context = None
 
         for key, value in kwargs.items():
             self[key] = value

@@ -47,6 +47,7 @@ class RecurrentTPP(nn.Module):
         self.rnn_type = rnn_type
         self.context_init = nn.Parameter(torch.zeros(context_size))  # initial state of the RNN
         self.rnn = getattr(nn, rnn_type)(input_size=self.num_features, hidden_size=self.context_size, batch_first=True)
+        self.context_embedding = nn.Linear(1, context_size)
 
     def get_features(self, batch: dpp.data.Batch) -> torch.Tensor:
         """
@@ -116,7 +117,8 @@ class RecurrentTPP(nn.Module):
 
         """
         features = self.get_features(batch)
-        context = self.get_context(features)
+        # context = self.get_context(features)
+        context = self.get_context(features) + self.context_embedding(batch.context)
         inter_time_dist = self.get_inter_time_dist(context)
         inter_times = batch.inter_times.clamp(1e-10)
         log_p = inter_time_dist.log_prob(inter_times)  # (batch_size, seq_len)
